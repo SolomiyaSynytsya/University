@@ -1,4 +1,16 @@
 --set @rnd = (SELECT FLOOR(RAND()*(@b-@a)+@a))\
+create procedure GenerateNames 
+	@RndName int output, @RndSurname int output
+as
+begin
+	declare @NameAmmount int, @SurnameAmmount int
+	select @NameAmmount=count(Name) from TempNames
+	select @SurnameAmmount = count(Surname) from TempSurnames
+	set @Rndname = (SELECT FLOOR(RAND()*(@NameAmmount-1)+1))
+	set @RndSurname = (SELECT FLOOR(RAND()*(@SurnameAmmount-1)+1))
+end
+go
+
 --drop procedure CreateGroups
 create procedure CreateGroups
 as
@@ -69,24 +81,19 @@ go
 create procedure GenerateTeachers
 as 
 begin
-	declare @Rndname int, @RndSurname int, @RndSalary int, @Cnt int = 1
-	declare @NameAmmount int, @SurnameAmmount int
+	declare  @RndSalary int, @Cnt int = 1
+	declare @GeneratedName int, @GeneratedSurname int
 	declare @AmmountOfteachers int, @MinSalary int = 3200, @MaxSalary int = 6000 
 	select @AmmountOfteachers = count(Name) * 2 from Subject
-	select @NameAmmount=count(Name) from TempNames
-	select @SurnameAmmount = count(Surname) from TempSurnames
 	DBCC CHECKIDENT (Teacher, RESEED, 0)
 	while @Cnt < @AmmountOfteachers
 	begin
-		set @Rndname = (SELECT FLOOR(RAND()*(@NameAmmount-1)+1))
-		set @RndSurname = (SELECT FLOOR(RAND()*(@SurnameAmmount-1)+1))
+		exec GenerateNames @GeneratedName output, @GeneratedSurname output  
 		set @RndSalary = (SELECT FLOOR(RAND()*(@MaxSalary-@MinSalary)+@MinSalary))
 		insert into Teacher(Name, Surname, Salary, Createddate)
-			select f.Name, l.Surname, @RndSalary, getdate()
-			from TempNames f
-			inner join TempSurnames l 
-			on 1=1
-			where l.Id=@RndSurname and f.Id=@Rndname
+			select tn.Name, ts.Surname, @RndSalary, getdate()
+			from TempNames tn,TempSurnames ts 			
+			where ts.Id=@GeneratedSurname and tn.Id=@GeneratedName
 			set @Cnt += 1
 	end	
 	select * From Teacher
@@ -94,27 +101,89 @@ end
 exec GenerateTeachers 
 go
 
+--drop procedure AddTeachersToSubjects
 create procedure AddTeachersToSubjects
 as
 begin
 	declare @SubCnt int = 1, @AmmountOfSub int, @AmmountOfTeacher int, @RndTeacher int = 0
 	declare @BusyTeacher table(Id int)
-	declare @AmmountBusyTeacher int
+	declare @AmmountBusyTeacher int = 2, @CntAmmountBusyTeacher int
+	declare @TeacherPerSub int = 2, @CntTeacherPerSub int = 0
 	select @AmmountOfSub = count(Name) from Subject
+	select @AmmountOfTeacher = count(Name) from Teacher
+	DBCC CHECKIDENT (SubjectToTeacher, RESEED, 0)
 	while @SubCnt < @AmmountOfSub
 	begin
-		set @RndTeacher = (SELECT FLOOR(RAND()*(@AmmountOfTeacher-1)+1))
-		set @AmmountBusyTeacher = (select count(Id) from @BusyTeacher where Id = @RndTeacher)
-		
-		while @AmmountBusyTeacher >2
+		while @CntTeacherPerSub < @TeacherPerSub
 		begin
 			set @RndTeacher = (SELECT FLOOR(RAND()*(@AmmountOfTeacher-1)+1))
-			set @AmmountBusyTeacher = (select count(Id) from @BusyTeacher where Id = @RndTeacher)
+			set @CntAmmountBusyTeacher = (select count(Id) from @BusyTeacher where Id = @RndTeacher)		
+			while @CntAmmountBusyTeacher >@AmmountBusyTeacher
+			begin
+				set @RndTeacher = (SELECT FLOOR(RAND()*(@AmmountOfTeacher-1)+1))
+				set @CntAmmountBusyTeacher = (select count(Id) from @BusyTeacher where Id = @RndTeacher)
+			end
+			insert into @BusyTeacher(Id) values(@RndTeacher)
+			print @RndTeacher
+			insert into SubjectToTeacher(SubId, TeacherId, CreatedDate) 
+				select @SubCnt, @RndTeacher, getdate()
+			set @CntTeacherPerSub += 1
 		end
-		insert into @BusyTeacher(Id) values(@RndTeacher)
-		insert into SubjectToTeacher(SubId, TeacherId, CreatedDate) 
-			select s.Id, 
+		set @CntTeacherPerSub = 0
+		set @SubCnt += 1
 	end
+	select * from SubjectToTeacher
 end
+exec AddTeachersToSubjects
+go
 
+--drop procedure GenerateStudents
+create procedure GenerateStudents 
+as
+begin
+	declare @GroupsAmmount int, @CntGroups int = 1, @StudentsPerGroup int = 25, @CntStudents int = 1 
+	declare @GeneratedName int, @GeneratedSurname int
+	select @GroupsAmmount = count(Id) from [Group]
+	DBCC CHECKIDENT (Student, RESEED, 0)
+	while @CntGroups <= @GroupsAmmount
+	begin
+		while @CntStudents <= @StudentsPerGroup
+		begin
+			exec GenerateNames @GeneratedName output, @GeneratedSurname output  
+			insert into Student(Name, Surname, GroupId, CreatedDate)
+				select tn.Name, ts.Surname, @CntGroups, getdate() 
+				from TempNames tn,TempSurnames ts
+				where tn.Id = @GeneratedName and ts.Id = @GeneratedSurname	
+			set @CntStudents += 1			
+		end
+		set @CntStudents = 1
+		set @CntGroups += 1
+	end 
+	select * from Student
+end
+exec GenerateStudents
+go
 
+drop procedure GenerateMarkData
+create procedure GenerateMarkData
+as
+begin
+	declare @CntStudents int = 1, @AmmountOfStudents int, @a int = 0  
+	declare @TestTable table (StId int, GrToSubId int, Mark int)
+	select @AmmountOfStudents = count(Id) from Student
+		insert into @TestTable(StId, GrToSubId)
+			select s.Id, gts.Id
+			from Student s 
+			inner join GroupToSubject gts
+			on s.GroupId = gts.GroupId
+	select * from @TestTable
+	/*while @a < @ammount
+	begin
+		update @TestTable 
+		set Mark = FLOOR(RAND()*(100-50)+50)
+		where @@rowcount = @a
+		set @a += 1
+	end*/
+end
+exec GenerateMarkData
+go
