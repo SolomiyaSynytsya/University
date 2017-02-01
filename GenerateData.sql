@@ -164,26 +164,27 @@ end
 exec GenerateStudents
 go
 
-drop procedure GenerateMarkData
+--drop procedure GenerateMarkData
 create procedure GenerateMarkData
 as
 begin
-	declare @CntStudents int = 1, @AmmountOfStudents int, @a int = 0  
-	declare @TestTable table (StId int, GrToSubId int, Mark int)
-	select @AmmountOfStudents = count(Id) from Student
-		insert into @TestTable(StId, GrToSubId)
-			select s.Id, gts.Id
+	declare  @CntRows int = 1, @AmmountOfRowsMarkData int   
+	declare @TestTable table (Id int Identity(1,1), StId int, GrToSubId int, Mark int)
+	DBCC CHECKIDENT (MarkData, RESEED, 0)
+		insert into Markdata(StudentId, GroupToSubjectId,CreatedDate)
+			select s.Id, gts.Id, getdate()
 			from Student s 
 			inner join GroupToSubject gts
 			on s.GroupId = gts.GroupId
-	select * from @TestTable
-	/*while @a < @ammount
+	set @AmmountOfRowsMarkData = (select count(Id) from Markdata)
+	while @CntRows <= @AmmountOfRowsMarkData
 	begin
-		update @TestTable 
+		update MarkData 
 		set Mark = FLOOR(RAND()*(100-50)+50)
-		where @@rowcount = @a
-		set @a += 1
-	end*/
+		where Id = @CntRows
+		set @CntRows += 1
+	end
+	select * from MarkData
 end
 exec GenerateMarkData
 go

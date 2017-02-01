@@ -23,6 +23,9 @@ alter table SubjectToTeacher
 add constraint DF_SubjectToTeacher Default Getdate() for ModifiedDate;    
 go
 
+alter table Student
+add constraint CheckNull_Student Check(Name is not null and Surname is not null and GroupId is not null)
+
 create table dbo.Faculty
 (
 	Id int identity(1,1),
