@@ -10,33 +10,20 @@ as
 go
 
 --*****************  Inserting data  ******************************
-
---drop procedure AddStudentWithGroupId
-create procedure AddStudentWithGroupId
+select * from Student where Name = 'Solomiya' go
+create procedure AddStudent
 	@Name varchar(30),  @Surname varchar(30)
-	,@GroupId int, @MiddleName varchar(30)=null
+	,@GroupId int, @CrDate date = null,@MiddleName varchar(30)=null
 as
 begin
-	insert into Student(name, MiddleName, Surname, GroupId) values
-	(@Name, @MiddleName, @Surname,@GroupId)
+	insert into Student(Name, MiddleName, Surname, GroupId, CreatedDate) values
+	(@Name, @MiddleName, @Surname,@GroupId, coalesce(@CrDate, getdate()))
 end
 go
 SET STATISTICS TIME ON
 --exec AddStudentWithGroupId 'Josdfgyhjkkkkkkkkkkkkkkkkkkkwefpoqg355555etbwrhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhnwrnywrnwn5555hn', 'Dilan', 1, 'Mikhel'  
 go
 SET STATISTICS TIME OFF
-go
-
-create procedure AddStudentWithGroupName
-	@Name varchar(30),  @Surname varchar(30)
-	,@GroupName varchar(30),@MiddleName varchar(30) = null
-as
-begin
-	declare @GroupId int	
-	set @GroupId = (select Id from [Group] g where g.Name = @GroupName)
-	insert into Student(Name, MiddleName, Surname, GroupId) values
-	(@Name, @MiddleName, @Surname,@GroupId)
-end
 go
 
 create procedure AddFaculty 
@@ -58,16 +45,6 @@ begin
 end
 go
 
-create procedure AddSpecialityWithFacultyName
-	@CreatedDate date, @Name varchar(50), @Facultyname varchar(50)
-as
-begin
-	declare @FacultyId int
-	set @FacultyId = (select Id from Faculty f where f.Name = @Name)
-	insert into Speciality(Name, FacultyId, CreatedDate) values
-	(@Name, @FacultyId, @Createddate)
-end
-go
 
 create procedure AddGroupWithSpecialityId
 	 @CreatedDate date, @Name varchar(10), @SpecialityId int
@@ -76,17 +53,6 @@ begin
 	insert into [Group](Name, SpecialityId, CreatedDate) values
 		(@Name, @SpecialityId, @CreatedDate)
 end 
-go
-
-create procedure AddGroupWithSpecialityName
-	 @CreatedDate date, @Name varchar(10),@SpecialityName varchar(50)
-as
-begin
-	declare @SpecialityId int
-	set @SpecialityId = (select Id from Speciality s where s.Name = @SpecialityName )
-	insert into [Group](Name, SpecialityId, CreatedDate) values
-		(@Name, @SpecialityId, @CreatedDate)
-end
 go
 
 create procedure AddRelationGroupToSubjectWithId
@@ -98,55 +64,20 @@ begin
 end
 go
 
-create procedure AddRelationGroupToSubjectWithNames
-	@CreatedDate date, @GroupName varchar(10), @SubName varchar(30)
+create procedure AddMarkData
+	@StudentId int, @SubId int, @Mark int, @CreatedDate date = null
 as
 begin
-	declare @GroupId int, @SubId int
-	set @GroupId = (select Id from [Group] g where g.Name = @GroupName)
-	set @SubId = (select Id from Subject s where s.Name = @SubName)
-	insert into GroupToSubject(GroupId, SubId, CreatedDate) values
-		(@GroupId, @SubId, @CreatedDate)
-end
-go
-
-create procedure AddMarkDataWithGroupToSubjectId
-	@StudentId int, @GroupToSubjectId int, @Mark int, @CreatedDate date
-as
-begin
-	insert into MarkData(StudentId, GroupToSubjectId, Mark, CreatedDate) values
-	(@StudentId, @GroupToSubjectId, @Mark, @CreatedDate)
-end
-go
-
-create procedure AddMarkDataWithGroupAndSubIds
-	@StudentId int, @GroupId int, @SubId int, @Mark int, @CreatedDate date
-as
-begin
+	declare @GrId int
+	set @GrId = (select GroupId from Student where Id=@StudentId)
 	declare @GrToSubId int 
 	set @GrToSubId = (select Id from GroupToSubject 
-						where GroupId = @GroupId and SubId = @SubId)
+						where GroupId = @GrId and SubId = @SubId)
 	insert into MarkData(StudentId, GroupToSubjectId, Mark, CreatedDate) values
-	(@StudentId, @GrToSubId, @Mark, @CreatedDate)
+	(@StudentId, @GrToSubId, @Mark, coalesce(@CreatedDate, getdate()))
 end
 go
 
-create procedure AddMarkDataWithGroupAndSubNames
-	@StudentId int, @GroupName varchar(10), @SubName varchar(30)
-	,@Mark int, @CreatedDate date
-as
-begin
-	declare @GrToSubId int, @GrId int, @SubId int 
-	set  @GrId = (select Id from [Group] g 
-					where g.Name=@GroupName)
-	set @SubId = (select Id from Subject s 
-					where s.Name = @SubName)
-	set @GrToSubId = (select Id from GroupToSubject 
-						where GroupId = @GrId and SubId = @SubId )
-	insert into MarkData(StudentId, GroupToSubjectId, Mark, CreatedDate) values
-	(@StudentId, @GrToSubId, @Mark, @CreatedDate)
-end
-go
 
 create procedure AddSubject 
 	@Subname varchar(30), @CreatedDate date
@@ -162,25 +93,12 @@ as
 	(@SubId, @TeachId, @CreatedDate) 
 go
 
-create procedure AddSubjectToTeacherRelWithNames
-	@SubName varchar(30), @TeachName varchar(30), @CreatedDate date
-as
-begin
-	declare @SubId int, @TeachId int
-	set @SubId = (select Id from Subject s
-					where  s.Name = @SubName) 
-	set @TeachId = (select Id from Teacher t
-						where t.Name = @TeachName)
-	insert into SubjectToTeacher(SubId, TeacherId, CreatedDate) values
-	(@SubId, @TeachId, @CreatedDate) 
-end	
-go
 create procedure AddTeacher 
-	@Name varchar(30), @Surname varchar(30), @Salary float, @CreatedDate date
+	@Name varchar(30), @Surname varchar(30), @Salary float, @CreatedDate date=null
 	,@MiddleName varchar(30)= null
 as
 	insert into Teacher(Name, MiddleName, Surname, Salary, CreatedDate) values
-	(@Name, @MiddleName, @Surname, @Salary, @CreatedDate)
+	(@Name, @MiddleName, @Surname, @Salary, coalesce(@CreatedDate, getdate()))
 go
 
 --************  Updating data  ***************
@@ -451,6 +369,65 @@ as
 	where (f.Id = @FacId and ) or (f.Name = @FacName)
 go
 
-create procedure GetFacultiesWithTeachers 
+--**************************************************************************************************************
+create procedure AddRandomData 
 as
-	
+begin
+		declare @Nm varchar(30), @Srnm varchar(30), @Gr int,@StAmm int
+				,@GrToS int, @MarkAm int
+		declare @AmN int, @AmS int
+		set @Gr = (select count(Id) from [Group])
+		set @AmN= (select count(Id) from TempNames)
+		set @AmS = (select count(Id) from TempSurnames)
+		set @StAmm = (select count(Id) from Student )
+		set @Nm = (select Name from TempNames where Id = FLOOR(RAND()*(@AmN-1)+1))
+		set @Srnm = (select Surname from TempSurnames where Id = FLOOR(RAND()*(@AmS-1)+1))
+		set @GrToS = (select count(Id) from GroupToSubject)
+		set @MarkAm = (select count(Id) from MarkData)
+
+	declare @Num int
+	set @Num = CAST(RAND() * 10000000 AS INT)
+	if @Num % 7 = 0 
+	begin 
+		declare @SId int, @Mrk int, @StId int
+
+		set @StId = (SELECT FLOOR(RAND()*(@StAmm-1)+1))
+		set @SId = (select top(1) SubId from GroupToSubject
+								where GroupId in (select GroupId from Student 
+													where Id = @StId))
+		set @Mrk = FLOOR(RAND()*(100-50)+50)
+		exec AddMarkData @StId, @SId, @Mrk
+		print @StId 
+	end
+	else if @Num % 6 = 0
+	begin
+		
+		exec AddStudent @Nm, @Srnm, @Gr
+	end
+	else if @Num % 5 = 0
+	begin
+		declare @Salary float 
+		set @Salary= FLOOR(RAND()*(6000-3200)+3200)
+		exec AddTeacher @Nm, @Srnm, @Salary
+	end
+	else if @Num % 4 = 0
+	begin
+		declare  @Sub int, @Group int, @Subject int
+		set @Sub = (select count(Id) from Subject)
+		set @Group = FLOOR(RAND()*(@Gr-1)+1)
+		set @Subject = FLOOR(RAND()*(@Sub-1)+1)
+		exec UpdateGroupToSubject @GrToS, @Group, @Subject
+	end
+	else if @Num % 3 = 0
+	begin
+		--create procedure UpdateMarkData
+			--@Id int,@StId int, @GrToSub int, @Mark int, @CreatedDate date = null 
+		declare @MarkId int, @St int , @GrS int, @Mr int
+		set @MarkId = FLOOR(RAND()*(@MarkAm-1)+1)
+		set @St =  FLOOR(RAND()*(@StAmm-1)+1)
+		set @GrS = FLOOR(RAND()*(@GrToS-1)+1)
+		set @Mr = FLOOR(RAND()*(@MarkAm-1)+1)
+		exec UpdateMarkData @MarkId, @St, @GrS,@Mr
+	end
+end 
+go
