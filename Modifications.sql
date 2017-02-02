@@ -183,6 +183,170 @@ as
 	(@Name, @MiddleName, @Surname, @Salary, @CreatedDate)
 go
 
+--************  Updating data  ***************
+create procedure UpdateFaculty
+	@Id int,@Name varchar(50), @CreatedDate date = null
+as	
+	update Faculty
+	set Name = @Name 
+	,CreatedDate = coalesce(@CreatedDate, CreatedDate)
+	where Id = @Id
+go
+create procedure UpdateGroup
+	@Id int, @Name varchar(10), @SpId int= null, @CreatedDate date = null 
+as
+	update [Group] 
+	set Name = @Name
+	   ,SpecialityId = coalesce(@SpId,SpecialityId)
+	   ,CreatedDate = coalesce(@CreatedDate, CreatedDate)
+	where Id = @Id
+go
+
+create procedure UpdateGroupToSubject
+	@Id int,@GrId int= null , @SubId int= null , @CreatedDate date = null 
+as
+	update GroupToSubject
+	set GroupId = coalesce(@GrId,GroupId)
+		,SubId = coalesce(@SubId, SubId)
+		,CreatedDate = coalesce(@CreatedDate, CreatedDate)
+	where Id = @Id
+go
+
+create procedure UpdateMarkData
+	@Id int,@StId int, @GrToSub int, @Mark int, @CreatedDate date = null 
+as
+	update Markdata 
+	set StudentId = @StId
+		,GroupToSubjectId = @GrToSub
+		,Mark = @Mark
+		,CreatedDate = coalesce(@CreatedDate, CreatedDate)
+	where Id = @Id
+go
+
+create procedure UpdateSpeciality
+	@Id int, @Name varchar(50), @FacultyId int = null, @CreatedDate date = null 
+as
+	update Speciality
+	set Name = @Name
+		,FacultyId = coalesce(@FacultyId, FacultyId)
+		,CreatedDate = coalesce(@CreatedDate, CreatedDate)
+	where Id = @Id
+go 
+
+create procedure UpdateStudent
+	@Id int, @Name varchar(30), @Surname varchar(50)= null, @GrId int= null
+	,@MidName varchar(30)= null, @CreatedDate date = null
+as
+	update Student
+	set Name = @Name
+		,MiddleName = coalesce(@MidName, MiddleName)
+		,Surname = coalesce(@Surname, Surname)
+		,GroupId = coalesce(@GrId, GroupId) 
+		,CreatedDate = coalesce(@CreatedDate, CreatedDate)
+	where Id = @Id
+go
+
+create procedure UpdateSubject
+	@Id int, @Name varchar(30), @CreatedDate date = null
+as
+	update Subject
+	set Name = @Name
+	,CreatedDate = coalesce(@CreatedDate, CreatedDate)
+go
+
+create procedure UpdateTeacher 
+	@Id int, @Name varchar(30)= null, @Surname varchar(50)= null
+	,@MidName varchar(30) = null, @CreatedDate date = null, @Salary float = null  
+as
+	update Teacher 
+	set Name = coalesce(@Name, Name)
+		,Surname = coalesce(@Surname, Surname)
+		,MiddleName = coalesce(@MidName, MiddleName)
+		,Salary = coalesce(@Salary, Salary)
+		,CreatedDate = coalesce(@CreatedDate, CreatedDate)
+	where Id = @Id
+go
+
+--************  Deleting data   ***************
+
+create procedure DeleteFaculty 
+	@FacId int
+as
+	delete from Faculty
+	where Id = @FacId
+	declare @SpecId int, @GroupId int
+	set @SpecId = (select Id from Speciality where FacultyId=@FacId)
+	set @GroupId = (select Id from [Group] where SpecialityId = @SpecId)
+	delete from Speciality
+	where FacultyId=@FacId
+	delete from [Group]
+	where SpecialityId = @SpecId
+	delete from GroupToSubject
+	where GroupId =@GroupId 
+go
+
+create procedure DeleteGroup
+	@GroupId int
+as
+	delete from [Group]
+	where Id = @GroupId
+	delete from GroupToSubject
+	where GroupId =@GroupId 
+go	
+
+create procedure DeleteGroupToSubject
+	@Id int
+as	
+	delete from GroupToSubject
+	where Id = @Id
+go
+
+create procedure DeleteMarkData
+	@Id int
+as
+	delete from MarkData
+	where Id = @Id
+go
+create procedure DeleteSpeciality
+	@Id int
+as
+	delete from Speciality	
+	where Id = @Id
+	delete from [Group] 
+	where SpecialityId = @Id
+go
+create procedure DeleteStudent
+	@Id int
+as
+	delete from Student 
+	where Id = @Id
+	delete from MarkData
+	where StudentId = @Id
+go
+create procedure DeleteSubject
+	@Id int
+as
+	delete from Subject 
+	where Id = @Id
+	delete from GroupToSubject 
+	where SubId = @Id
+	delete from SubjectToTeacher
+	where SubId = @Id
+go
+create procedure DeleteSubjectToTeacher
+	@Id int
+as
+	delete from SubjectToTeacher
+	where Id = @Id
+go
+create procedure DeleteTeacher
+	@Id int
+as
+	delete from Teacher
+	where Id = @Id
+	delete from SubjectToTeacher
+	where TeacherId = @Id
+go
 --************  Selecting data  *************** 
 create procedure GetStudentsFromGroupWithId
 	@GroupId int
@@ -228,3 +392,20 @@ as
 go
 --exec GetStudentFromGroupWithAvgMark 1, 90
 
+create procedure GetFaculties 
+as
+	select Name, CreatedDate, ModifiedDate
+	from Faculty
+go
+
+create procedure GetFacultyWithId
+	@FacId int = null, @FacName varchar(30)= null
+as
+	select Name, CreatedDate, ModifiedDate
+	from Faculty f
+	where (f.Id = @FacId and ) or (f.Name = @FacName)
+go
+
+create procedure GetFacultiesWithTeachers 
+as
+	
