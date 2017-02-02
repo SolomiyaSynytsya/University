@@ -264,34 +264,55 @@ as
 		,MiddleName = coalesce(@MidName, MiddleName)
 		,Salary = coalesce(@Salary, Salary)
 		,CreatedDate = coalesce(@CreatedDate, CreatedDate)
-	where Id = @Id
+	where Id = @Id 
 go
 
 --************  Deleting data   ***************
-
 create procedure DeleteFaculty 
 	@FacId int
 as
+	delete from Markdata 
+	where StudentId in 
+		(select Id from Student 
+		where GroupId in 
+				(select Id from [Group] 
+				where SpecialityId in 
+					(select Id from Speciality 
+					where FacultyId=@FacId)
+				)
+			)
+	delete from Student 
+	where GroupId in (select Id from [Group] 
+					 where SpecialityId in (select Id from Speciality 
+							where FacultyId=@FacId)
+					  ) 
+	delete from GroupToSubject
+	where GroupId in (select Id from [Group] 
+						where SpecialityId in (select Id from Speciality 
+												where FacultyId=@FacId)
+					 )
+	delete from [Group]
+	where SpecialityId in (select Id from Speciality 
+							where FacultyId=@FacId)
+	delete from Speciality
+	where FacultyId=@FacId	
 	delete from Faculty
 	where Id = @FacId
-	declare @SpecId int, @GroupId int
-	set @SpecId = (select Id from Speciality where FacultyId=@FacId)
-	set @GroupId = (select Id from [Group] where SpecialityId = @SpecId)
-	delete from Speciality
-	where FacultyId=@FacId
-	delete from [Group]
-	where SpecialityId = @SpecId
-	delete from GroupToSubject
-	where GroupId =@GroupId 
 go
 
 create procedure DeleteGroup
 	@GroupId int
 as
+	delete from MarkData
+	where GroupToSubjectId in (select Id from GroupToSubject 
+								where GroupId = @GroupId)
+	delete from GroupToSubject
+	where GroupId =@GroupId
+	delete from Student 
+	where GroupId = @GroupId
 	delete from [Group]
 	where Id = @GroupId
-	delete from GroupToSubject
-	where GroupId =@GroupId 
+	 
 go	
 
 create procedure DeleteGroupToSubject
@@ -307,31 +328,48 @@ as
 	delete from MarkData
 	where Id = @Id
 go
+
 create procedure DeleteSpeciality
 	@Id int
 as
-	delete from Speciality	
-	where Id = @Id
+	delete from MarkData 
+	where StudentId in (select Id from Student
+						where GroupId in (select id from [Group] 
+											where SpecialityId = @Id)
+						)
+	delete from Student 
+	where GroupId in (select id from [Group] 
+						where SpecialityId = @Id)
+	delete from GroupToSubject 
+	where GroupId in (select Id from [Group] 
+					  where SpecialityId = @Id)
 	delete from [Group] 
 	where SpecialityId = @Id
+	delete from Speciality	
+	where Id = @Id
 go
+
 create procedure DeleteStudent
 	@Id int
 as
-	delete from Student 
-	where Id = @Id
 	delete from MarkData
 	where StudentId = @Id
+	delete from Student 
+	where Id = @Id
+	
 go
 create procedure DeleteSubject
 	@Id int
-as
-	delete from Subject 
-	where Id = @Id
+as	
+	delete from MarkData
+	where GroupToSubjectId in (select Id from GroupToSubject 
+								where SubId = @Id)
 	delete from GroupToSubject 
 	where SubId = @Id
 	delete from SubjectToTeacher
 	where SubId = @Id
+	delete from Subject 
+	where Id = @Id
 go
 create procedure DeleteSubjectToTeacher
 	@Id int
@@ -339,14 +377,21 @@ as
 	delete from SubjectToTeacher
 	where Id = @Id
 go
+
+--exec DeleteSubjectToTeacher 2
+--go
+
 create procedure DeleteTeacher
 	@Id int
 as
-	delete from Teacher
-	where Id = @Id
 	delete from SubjectToTeacher
 	where TeacherId = @Id
+	delete from Teacher
+	where Id = @Id
+	
 go
+--exec DeleteTeacher 2
+--go
 --************  Selecting data  *************** 
 create procedure GetStudentsFromGroupWithId
 	@GroupId int
