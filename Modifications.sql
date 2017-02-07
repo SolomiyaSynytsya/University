@@ -64,10 +64,12 @@ begin
 end
 go
 
+--drop procedure AddMarkData
 create procedure AddMarkData
 	@StudentId int, @SubId int, @Mark int, @CreatedDate date = null
 as
 begin
+	SET NOCOUNT OFF; 
 	declare @GrId int
 	set @GrId = (select GroupId from Student where Id=@StudentId)
 	declare @GrToSubId int 
@@ -373,6 +375,7 @@ go
 create procedure AddRandomData 
 as
 begin
+		SET NOCOUNT OFF;  
 		declare @Nm varchar(30), @Srnm varchar(30), @Gr int,@StAmm int
 				,@GrToS int, @MarkAm int
 		declare @AmN int, @AmS int
@@ -412,11 +415,13 @@ begin
 	end
 	else if @Num % 4 = 0
 	begin
-		declare  @Sub int, @Group int, @Subject int
+		declare  @Sub int, @Group int, @Subject int, @id int
 		set @Sub = (select count(Id) from Subject)
 		set @Group = FLOOR(RAND()*(@Gr-1)+1)
 		set @Subject = FLOOR(RAND()*(@Sub-1)+1)
-		exec UpdateGroupToSubject @GrToS, @Group, @Subject
+		set @id = (select Id from GroupToSubject 
+					where GroupId=@Group and SubId = @Subject)
+		exec UpdateGroupToSubject @id, @Group, @Subject
 	end
 	else if @Num % 3 = 0
 	begin
@@ -426,8 +431,13 @@ begin
 		set @MarkId = FLOOR(RAND()*(@MarkAm-1)+1)
 		set @St =  FLOOR(RAND()*(@StAmm-1)+1)
 		set @GrS = FLOOR(RAND()*(@GrToS-1)+1)
-		set @Mr = FLOOR(RAND()*(@MarkAm-1)+1)
-		exec UpdateMarkData @MarkId, @St, @GrS,@Mr
+		set @Mr = FLOOR(RAND()*(100-50)+50)
+		exec UpdateMarkData @MarkId,@St, @GrS,@Mr
 	end
 end 
 go
+
+--drop procedure AddRandomData
+exec AddRandomData
+
+SELECT SERVERPROPERTY ('IsPolybaseInstalled') AS IsPolybaseInstalled;  

@@ -1,0 +1,6 @@
+D:\work\University\Loader\Loader\bin\Debug\Loader.exe.config
+D:\work\University\Loader\Loader\bin\Debug\Loader.exe
+D:\work\University\Loader\Loader\bin\Debug\Loader.pdb
+D:\work\University\Loader\Loader\obj\Debug\Loader.csprojResolveAssemblyReference.cache
+D:\work\University\Loader\Loader\obj\Debug\Loader.exe
+D:\work\University\Loader\Loader\obj\Debug\Loader.pdb
